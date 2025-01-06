@@ -14,11 +14,7 @@ on:
   pull_request:
     branches: [ "main", "github-action-ci" ]
 
-jobs:
-  login:
-    runs-on: ubuntu-latest
-    steps:
-      
+jobs:      
   build:
     runs-on: ubuntu-latest
     steps:
