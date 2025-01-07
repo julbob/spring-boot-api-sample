@@ -14,18 +14,23 @@ on:
   pull_request:
     branches: [ "main", "github-action-ci" ]
 
-jobs:      
+jobs:
+  imageName:
+    runs-on: ubuntu-latest
+    steps:
+    - name: "Compute image name"
+      run: echo "imagename=julbob/sample-app:$(date +%s)" >> $GITHUB_OUTPUT
+      id: version  # this is used on variable path
+
   build:
     runs-on: ubuntu-latest
+    needs: imageName
     steps:
     - name: Login to Docker Hub
       uses: docker/login-action@v3
       with:
         username: ${{ vars.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
-    - name: "Set current date as env variable"
-      run: echo "builddate=$(date +%s)" >> $GITHUB_OUTPUT
-      id: version  # this is used on variable path
     - uses: actions/checkout@v4
     - name: Set up JDK 21
       uses: actions/setup-java@v4
@@ -36,9 +41,9 @@ jobs:
     - name: Build with Maven
       run: mvn -B package --file pom.xml
     - name: Build the docker image
-      run: docker build . --file Dockerfile --tag julbob/sample-app:${{steps.version.outputs.builddate}}
+      run: docker build . --file Dockerfile --tag ${{job.imageName.steps.version.imagename}}
     - name: Push docker 
-      run: docker push julbob/sample-app:${{steps.version.outputs.builddate}}
+      run: docker push ${{job.imageName.steps.version.imagename}}
     - name: Update dependency graph
       uses: advanced-security/maven-dependency-submission-action@571e99aab1055c2e71a1e2309b9691de18d6b7d6
   deploy:
@@ -46,9 +51,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Deploy to production
-        uses: johnbeynon/render-deploy-action@v0.0.8
+        uses: gh-actions-workflows/deploy-docker-render@v1.1
         with:
-          service-id: ${{ secrets.MY_RENDER_SERVICE_ID }}
-          api-key: ${{ secrets.MY_RENDER_API_KEY }}
-          wait-for-success: true
+          deploy-hook: ${{ secrets.MY_RENDER_DEPLOY_HOOK }}
+          render-api-key: ${{ secrets.MY_RENDER_API_KEY }}
+          image-url: ${{job.imageName.steps.version.imagename}}
+          wait-for-deployment: true
 
