@@ -14,7 +14,7 @@ on:
   pull_request:
     branches: [ "main", "github-action-ci" ]
 env:
-  imagename: julbob/sample-app:latest
+  imagename: julbob/sample-app:${{ github.ref_name}}
 jobs:
   build:
     runs-on: ubuntu-latest
